@@ -66,11 +66,20 @@ func (s *Server) StaticFiles(fileMapping map[string]string) {
 	}
 }
 
-// StaticDirectory serves all files from a directory
 func (s *Server) StaticDirectory(directory string) {
-	// This converts the http.Handler returned by http.FileServer into an http.HandlerFunc
-	s.Router.Get("/static/{file}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.StripPrefix("/static", http.FileServer(http.Dir(directory))).ServeHTTP(w, r)
+	s.Router.Get("/static/{file:.*}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get the file path from the request
+		requestedFile := r.URL.Path[len("/static/"):]
+		fullPath := directory + "/" + requestedFile
+
+		// Ensure the path is not treated as a directory
+		if len(requestedFile) > 0 && requestedFile[len(requestedFile)-1] == '/' {
+			http.NotFound(w, r) // Return 404 for trailing slash
+			return
+		}
+
+		// Serve the file
+		http.ServeFile(w, r, fullPath)
 	}))
 }
 
