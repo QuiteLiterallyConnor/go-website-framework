@@ -14,6 +14,7 @@ import (
 	"github.com/markbates/goth/providers/google"
 )
 
+
 var (
 	// Store is the session store that gothic uses to save sessions.
 	// Replace with a secure key in a production environment.
