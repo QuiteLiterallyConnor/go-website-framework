@@ -1,10 +1,11 @@
 package server
 
 import (
-	"go-website-framework/auth" // Import the new auth package
 	"log"
 	"net/http"
 	"sync"
+
+	"github.com/QuiteLiterallyConnor/go-website-framework/auth" // Import the new auth package
 
 	"github.com/google/uuid"
 	"github.com/gorilla/pat"
