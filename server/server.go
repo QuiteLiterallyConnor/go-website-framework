@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/QuiteLiterallyConnor/go-website-framework/auth" // Import the new auth package
+	"github.com/QuiteLiterallyConnor/go-website-framework/auth"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/pat"
