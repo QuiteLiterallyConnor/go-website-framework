@@ -1,0 +1,54 @@
+- Is a singleton
+- Has a user tracking system
+- Has a logger
+
+- login system/auth?
+
+sendWebsocket - inputs: session_key, sends a websocket message to the session. Returns err
+sendWebsocket(session_key, "test message")
+func (s *Server) sendWebsocket(session_key, message string) err {
+    // send websocket message with gorilla websocket 
+    // return err
+}
+
+onReceiveWebsocket - inputs: lambda function called whenever the server receives a websocket.
+server.onReceiveWebsocket(func(key string, msg string) error {
+        fmt.Printf("Message received: %s from %s\n", msg, key)
+        return nil // no error
+    })
+func (s *Server) onReceiveWebsocket(handler func(key string, msg string) error) {
+    err := handler(key, msg)
+    if err != nil {
+        fmt.Println("Error:", err)
+    }
+}
+
+
+
+
+func main() {
+    s := &Server{} // singleton?!
+
+    staticFileMapping := map[string]string{
+		"/":         "static/index.html",
+		"/page":     "static/page.html",
+	}
+
+    s.StaticFiles(staticFileMapping)
+    s.StaticFile("/image", "static/image.html")
+    s.StaticDirectory("static")
+
+    s.onReceiveWebsocket(func(key string, msg string) error {
+        onWSReceive(key, msg)
+	})
+    err := s.sendWebsocket("session1", "Test message")
+
+    port := ":8080"
+	fmt.Println("Starting WebSocket server on port", port)
+
+	s.Serve(port)
+}
+
+func onWSReceive(session_key, message string) {
+    fmt.Printf("Message received: %s from %s\n", msg, key)
+}
