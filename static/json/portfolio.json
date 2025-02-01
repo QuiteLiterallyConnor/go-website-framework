@@ -1,0 +1,101 @@
+{
+    "3dAnimation": [
+        {
+            "videoName": "Hypixel Minecraft Server - Official Trailer (2022)",
+            "videoLink": "https://www.youtube.com/watch?v=bkWHyz1MmaQ",
+            "clientName": "Hypixel",
+            "clientLink": "https://www.youtube.com/@Hypixel",
+            "viewCount": "444K views",
+            "gifs": [
+                {
+                    "file": "https://i.imgur.com/Tll5YAp.gif",
+                    "link": "https://www.youtube.com/watch?v=bkWHyz1MmaQ"
+                }
+            ]
+        },
+        {
+            "videoName": "I Created A $1,500 HITMAN Challenge to Find The World's Best Player.",
+            "videoLink": "https://www.youtube.com/watch?v=1NzLGYRYHJo",
+            "clientName": "Atrioc",
+            "clientLink": "https://www.youtube.com/@atrioc",
+            "viewCount": "3M views",
+            "gifs": [
+                {
+                    "file": "https://i.imgur.com/25LaTGv.gif",
+                    "link": "https://www.youtube.com/watch?v=1NzLGYRYHJo"
+                }
+            ]
+        },
+        {
+            "videoName": "Lamborghini Vs World's Largest Shredder",
+            "videoLink": "https://www.youtube.com/watch?v=vBpQ1SlfVtU",
+            "clientName": "MrBeast",
+            "clientLink": "https://www.youtube.com/@MrBeast",
+            "viewCount": "200M views",
+            "gifs": [
+                {
+                    "file": "https://i.imgur.com/HV7IaLb.gif",
+                    "link": "https://www.youtube.com/watch?v=vBpQ1SlfVtU"
+                },
+                {
+                    "file": "https://i.imgur.com/X03rnjJ.gif",
+                    "link": "https://www.youtube.com/watch?v=vBpQ1SlfVtU"
+                }
+            ]
+        },
+        {
+            "videoName": "Dog Money Is Back. We're Doomed.",
+            "videoLink": "https://youtu.be/L8ZZDkxV0Ws?si=Ph4Yjwdah_G2ejs4",
+            "clientName": "Atrioc",
+            "clientLink": "https://www.youtube.com/@atrioc",
+            "viewCount": "469K views",
+            "gifs": [
+                {
+                    "file": "https://i.imgur.com/g90gxgu.gif",
+                    "link": "https://youtu.be/L8ZZDkxV0Ws?si=Ph4Yjwdah_G2ejs4&t=220"
+                }
+            ]
+        },
+        {
+            "videoName": "If Apple made Buttons",
+            "videoLink": "",
+            "clientName": "Button Corp",
+            "clientLink": "",
+            "viewCount": "~40k views",
+            "gifs": [
+                {
+                    "file": "https://i.imgur.com/shKo1rh.gif",
+                    "link": ""
+                }
+            ]
+        },
+        {
+            "videoName": "Unnamed Sneakpeak",
+            "videoLink": "",
+            "clientName": "Atrioc",
+            "clientLink": "",
+            "viewCount": "0 views",
+            "gifs": [
+                {
+                    "file": "https://i.imgur.com/ELqCSW1.gif",
+                    "link": ""
+                }
+            ]
+        }
+    ],
+    "videoEditing": [
+        {
+            "videoName": "The Writer's Strike is Over. Who Won?",
+            "videoLink": "https://www.youtube.com/watch?v=-n9XC7f50vc",
+            "clientName": "Atrioc",
+            "clientLink": "https://www.youtube.com/watch?v=1NzLGYRYHJo",
+            "viewCount": "330K views",
+            "gifs": [
+                {
+                    "file": "https://i.imgur.com/sCmb6D2.gif",
+                    "link": "https://www.youtube.com/watch?v=-n9XC7f50vc"
+                }
+            ]
+        }
+    ]
+}

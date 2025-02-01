@@ -1,0 +1,26 @@
+[
+    {
+        "position": "Software Engineer",
+        "duration": "October 2024 to Present",
+        "company": "NASA - Marshall Space Flight Center",
+        "responsibilities": "Maintain communication networking systems on the ISS program."
+    },
+    {
+        "position": "Software Engineer",
+        "duration": "May 2023 to July 2023",
+        "company": "Lockheed Martin – Huntsville, AL",
+        "responsibilities": "Responsibilities include software design, development, and integration of THAAD Fire Control Software. Update and maintain FPGA firmware."
+    },
+    {
+        "position": "Software Engineer - Models & Simulation",
+        "duration": "December 2021 to May 2023",
+        "company": "Northrop Grumman / Insight Global – Huntsville, AL",
+        "responsibilities": "Create and modify algorithms and support tools in C/C++, Go, Python, Ada, and MATLAB in a secure environment. Plan and execute team projects, develop work packages, prototypes, and customer demonstrations, analyze algorithm performance, subsystems, and interfaces."
+    },
+    {
+        "position": "Mission Systems Engineer – Active Duty USAF",
+        "duration": "December 2019 to December 2021",
+        "company": "US Air Force – Offutt AFB, NE",
+        "responsibilities": "Perform aircrew duties aboard the RC-135 reconnaissance platform. Operate, maintain, repair, and test airborne communications, electro optical sensor, radar, computer, electronic protection (EP) systems, and electronic warfare (EW) systems."
+    }
+]

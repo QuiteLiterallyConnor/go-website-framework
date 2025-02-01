@@ -1,0 +1,4 @@
+dev:
+ type: http
+ to: 172.17.0.4:8090
+ reserved_domain: resume.connorisseur.com

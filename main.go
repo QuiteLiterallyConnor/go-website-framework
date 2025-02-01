@@ -10,6 +10,9 @@ func main() {
 	s := server.NewServer()
 
 	s.Router.Static("/static", "./static")
+	s.Router.LoadHTMLGlob("templates/*")
+	// s.Router.LoadHTMLGlob("static/*")
+
 
 	url := "https://dev.connorisseur.com"
 	s.Auth = auth.NewAuth(url)
@@ -20,7 +23,7 @@ func main() {
 		return nil
 	})
 
-	port := ":8080"
+	port := ":8090"
 	fmt.Println("Starting server on port", port)
 	s.Serve(port)
 }

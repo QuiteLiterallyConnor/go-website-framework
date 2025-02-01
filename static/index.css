@@ -1,0 +1,90 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #1e1e1e;
+    color: white;
+}
+
+.container {
+    margin-top: 5rem;
+}
+
+.search-bar input {
+    background-color: #333;
+    color: white;
+}
+
+.box {
+    position: relative;
+    width: 20rem;
+    height: 25rem;
+    cursor: pointer;
+}
+
+.bg {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background-image: url("/static/background.png");
+    background-size: cover;
+    transition: 1s;
+    border-radius: 10px;
+    box-shadow: 0 10px 10px rgba(0, 0, 0, 0.5);
+}
+
+.box:hover .bg {
+    transform: perspective(20px) rotateX(2deg) translateY(-20px); /* Reduced upward movement */
+}
+
+.foreground {
+    position: absolute;
+    width: 20rem;
+    height: 20rem;
+    bottom: -20px;
+    background-size: 100%;
+    background-repeat: no-repeat;
+    animation: gifAnimation 0.2s linear infinite;
+    animation-play-state: paused !important;
+    transition: 1s;
+}
+
+.box:hover .foreground {
+    animation-play-state: running !important;
+    transform: translateY(-100px) translateX(-10px) scale(1.1); /* Move less up and scale by 10% */
+}
+
+@keyframes gifAnimation {
+    from {
+        background-image: url("/static/foreground.png");
+    }
+    to {
+        background-image: url("/static/foreground.png");
+    }
+}
+
+.link-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 10;
+}
+
+.card-caption {
+    font-size: 1.2rem;
+    color: #ffffff;
+    text-align: center;
+}
