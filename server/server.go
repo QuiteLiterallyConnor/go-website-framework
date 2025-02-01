@@ -1,89 +1,91 @@
 package server
 
 import (
-	"log"
+	"fmt"
 	"net/http"
-	"sync"
 
-	"github.com/QuiteLiterallyConnor/go-website-framework/auth"
-
-	"github.com/google/uuid"
-	"github.com/gorilla/pat"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/google/uuid"
+	"go-website-framework/auth"
 )
 
-// Server struct remains the same
 type Server struct {
-	Clients     map[string]*websocket.Conn // Tracks WebSocket connections by session_uuid
-	ClientsLock sync.Mutex                 // Mutex to manage concurrent access to Clients map
-	Router      *pat.Router                // Pat router for HTTP serving
-	Auth        *auth.AuthHandler          // Auth instance for handling authentication
+	Router     *gin.Engine
+	Auth       *auth.Auth
+	wsCallback func(sessionUUID string, msg string) error
 }
 
 func NewServer() *Server {
-	return &Server{
-		Clients: make(map[string]*websocket.Conn),
-		Router:  pat.New(),
-	}
+	router := gin.Default()
+
+	store := cookie.NewStore([]byte("secret"))
+	router.Use(sessions.Sessions("mysession", store))
+
+	router.LoadHTMLGlob("templates/*")
+
+	s := &Server{Router: router}
+
+	router.GET("/", func(c *gin.Context) {
+		session := sessions.Default(c)
+		user := session.Get("user")
+		loggedIn := user != nil
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"IsLoggedIn":  loggedIn,
+			"CurrentPage": "index",
+			"Username":    user,
+		})
+	})
+
+	router.GET("/ws", s.handleWebsocket)
+
+	return s
 }
 
-// Function to generate a new unique session_uuid (UUID)
-func generateSessionUUID() string {
-	return uuid.New().String()
-}
-
-// WebSocket communication and broadcast logic remains the same...
-
-// OnReceiveWebsocket sets up a handler function that gets called whenever a WebSocket message is received
-func (s *Server) OnReceiveWebsocket(handler func(session_uuid string, msg string) error) {
-	// WebSocket route handling remains the same...
-}
-
-// AuthRoutes now uses the AuthHandler to set up the routes
 func (s *Server) AuthRoutes(port string) {
-	// Setup OAuth providers (Google and Discord)
-	s.Auth.SetupProviders()
-
-	// Set up authentication-related routes
-	s.Auth.AuthRoutes(s.Router)
-
-	// Serve the authentication routes
-	log.Printf("listening on localhost%s\n", port)
-	log.Fatal(http.ListenAndServe(port, s.Router))
+	s.Router.GET("/login", s.Auth.LoginPage)
+	s.Router.POST("/login", s.Auth.Login)
+	s.Router.GET("/register", s.Auth.RegisterPage)
+	s.Router.POST("/register", s.Auth.Register)
+	s.Router.GET("/logout", s.Auth.Logout)
+	s.Router.GET("/profile", s.Auth.ProfilePage)
 }
 
-// StaticFile serves a single file from the server with a specific route
-func (s *Server) StaticFile(route, filePath string) {
-	s.Router.Get(route, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filePath)
-	}))
+func (s *Server) OnReceiveWebsocket(callback func(sessionUUID string, msg string) error) {
+	s.wsCallback = callback
 }
 
-// StaticFiles serves multiple files by mapping routes to file paths
-func (s *Server) StaticFiles(fileMapping map[string]string) {
-	for route, filePath := range fileMapping {
-		s.StaticFile(route, filePath)
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+func (s *Server) handleWebsocket(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		fmt.Println("Failed to upgrade connection:", err)
+		return
 	}
-}
-
-func (s *Server) StaticDirectory(directory string) {
-	s.Router.Get("/static/{file:.*}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get the file path from the request
-		requestedFile := r.URL.Path[len("/static/"):]
-		fullPath := directory + "/" + requestedFile
-
-		// Ensure the path is not treated as a directory
-		if len(requestedFile) > 0 && requestedFile[len(requestedFile)-1] == '/' {
-			http.NotFound(w, r) // Return 404 for trailing slash
-			return
+	sessionUUID := c.Query("session_uuid")
+	if sessionUUID == "" {
+		sessionUUID = uuid.New().String()
+	}
+	for {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			fmt.Println("Error reading message:", err)
+			break
 		}
-
-		// Serve the file
-		http.ServeFile(w, r, fullPath)
-	}))
+		if s.wsCallback != nil {
+			if err := s.wsCallback(sessionUUID, string(msg)); err != nil {
+				fmt.Println("WebSocket callback error:", err)
+			}
+		}
+	}
+	conn.Close()
 }
 
-// Serve starts the HTTP server
 func (s *Server) Serve(port string) {
-	log.Fatal(http.ListenAndServe(port, s.Router))
+	s.Router.Run(port)
 }

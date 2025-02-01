@@ -9,31 +9,22 @@ import (
 func main() {
 	s := server.NewServer()
 
+	s.Router.Static("/static", "./static")
+
 	url := "https://dev.connorisseur.com"
-	port := ":8080"
-
 	s.Auth = auth.NewAuth(url)
-	s.AuthRoutes(port)
+	s.AuthRoutes("")
 
-	staticFileMapping := map[string]string{
-		"/index":     "index.html",
-		"/websocket": "static/websocket.html",
-		"/page":      "static/page.html",
-	}
-
-	s.StaticFiles(staticFileMapping)
-	s.StaticDirectory("static")
-
-	s.OnReceiveWebsocket(func(session_uuid string, msg string) error {
-		onWSReceive(session_uuid, msg)
-		fmt.Printf("%v", s.Clients)
+	s.OnReceiveWebsocket(func(sessionUUID string, msg string) error {
+		onWSReceive(sessionUUID, msg)
 		return nil
 	})
 
-	fmt.Println("Starting WebSocket server on port", port)
+	port := ":8080"
+	fmt.Println("Starting server on port", port)
 	s.Serve(port)
 }
 
-func onWSReceive(session_uuid, message string) {
-	fmt.Printf("Message received: %s from %s\n", message, session_uuid)
+func onWSReceive(sessionUUID, message string) {
+	fmt.Printf("Message received: %s from %s\n", message, sessionUUID)
 }

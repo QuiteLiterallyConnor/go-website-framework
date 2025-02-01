@@ -1,139 +1,196 @@
 package auth
 
 import (
+	"bufio"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
-	"text/template"
+	"strings"
 
-	"github.com/gorilla/pat"
-	"github.com/gorilla/sessions" // Import the gorilla sessions package
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/gothic"
-	"github.com/markbates/goth/providers/google"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
+const userFile = "users.txt"
 
-var (
-	// Store is the session store that gothic uses to save sessions.
-	// Replace with a secure key in a production environment.
-	store = sessions.NewCookieStore([]byte("your-secret-key"))
-)
+var users = make(map[string]string)
 
-// AuthHandler stores the configuration for authentication.
-type AuthHandler struct {
-	Url string
+type Auth struct {
+	CallbackURL string
 }
 
-type ProviderIndex struct {
-	Providers    []string
-	ProvidersMap map[string]string
+func NewAuth(url string) *Auth {
+	auth := &Auth{CallbackURL: url}
+	auth.loadUsersFromFile()
+	return auth
 }
 
-// NewAuth creates a new AuthHandler instance.
-func NewAuth(url string) *AuthHandler {
-	a := &AuthHandler{
-		Url: url,
+func (a *Auth) loadUsersFromFile() {
+	file, err := os.Open(userFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Println("User file does not exist, starting fresh.")
+			return
+		}
+		fmt.Println("Error opening user file:", err)
+		return
 	}
-	a.SetupProviders()
-	return a
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Split(line, ":")
+		if len(parts) == 2 {
+			users[parts[0]] = parts[1]
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading user file:", err)
+	}
 }
 
-// SetupProviders sets up OAuth providers (Google and Discord).
-func (a *AuthHandler) SetupProviders() {
-	goth.UseProviders(
-		google.New(os.Getenv("GOOGLE_KEY"), os.Getenv("GOOGLE_SECRET"), a.Url+"/auth/google/callback"),
-		// discord.New(os.Getenv("DISCORD_KEY"), os.Getenv("DISCORD_SECRET"), a.Url+"/auth/discord/callback", discord.ScopeIdentify, discord.ScopeEmail),
-	)
+func (a *Auth) saveUserToFile(username, hashedPassword string) error {
+	file, err := os.OpenFile(userFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
-	fmt.Printf("callback google: %s\n", a.Url+"/auth/google/callback")
-	// fmt.Printf("callback discord: %s\n", a.Url+"/auth/discord/callback")
+	_, err = file.WriteString(fmt.Sprintf("%s:%s\n", username, hashedPassword))
+	return err
 }
 
-// AuthRoutes sets up the authentication routes for the server.
-func (a *AuthHandler) AuthRoutes(router *pat.Router) {
-	// Set the session store for gothic
-	gothic.Store = store
+func (a *Auth) LoginPage(c *gin.Context) {
+	session := sessions.Default(c)
+	user := session.Get("user")
+	if user != nil {
+		c.Redirect(http.StatusFound, "/")
+		return
+	}
+	c.HTML(http.StatusOK, "login.html", gin.H{
+		"IsLoggedIn":  false,
+		"CurrentPage": "login",
+	})
+}
 
-	// Callback route for Google
-	router.Get("/auth/google/callback", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		user, err := gothic.CompleteUserAuth(res, req)
-		if err != nil {
-			fmt.Fprintln(res, err)
-			return
-		}
-		// Serve profile page from static file (similar logic as server.go)
-		profileTemplate, err := template.ParseFiles("static/profile.html")
-		if err != nil {
-			log.Println("Error loading profile template:", err)
-			http.Error(res, "Error loading template", http.StatusInternalServerError)
-			return
-		}
-		profileTemplate.Execute(res, user)
-	}))
+func (a *Auth) Login(c *gin.Context) {
+	username := c.PostForm("username")
+	password := c.PostForm("password")
 
-	// Login page route
-	router.Get("/auth/{provider}", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		// Try to get the user without re-authenticating
-		if gothUser, err := gothic.CompleteUserAuth(res, req); err == nil {
-			// Serve profile page from static file
-			profileTemplate, err := template.ParseFiles("static/profile.html")
-			if err != nil {
-				log.Println("Error loading profile template:", err)
-				http.Error(res, "Error loading template", http.StatusInternalServerError)
-				return
-			}
-			profileTemplate.Execute(res, gothUser)
-		} else {
-			gothic.BeginAuthHandler(res, req)
-		}
-	}))
+	hashedPassword, exists := users[username]
+	if !exists {
+		a.renderLoginError(c, "Invalid username or password")
+		return
+	}
 
-	// Logout handler
-	router.Get("/logout/{provider}", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		gothic.Logout(res, req)
-		res.Header().Set("Location", "/")
-		res.WriteHeader(http.StatusTemporaryRedirect)
-	}))
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err != nil {
+		a.renderLoginError(c, "Invalid username or password")
+		return
+	}
 
-	// Login options page
-	router.Get("/login", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		indexTemplate, err := template.ParseFiles("static/login.html")
-		if err != nil {
-			log.Println("Error loading index template:", err)
-			http.Error(res, "Error loading template", http.StatusInternalServerError)
-			return
-		}
-		// Provide available OAuth providers to the page
-		providerIndex := &ProviderIndex{
-			Providers:    []string{"google", "discord"},
-			ProvidersMap: map[string]string{"google": "Google", "discord": "Discord"},
-		}
-		indexTemplate.Execute(res, providerIndex)
-	}))
+	session := sessions.Default(c)
+	session.Set("user", username)
+	session.Save()
+	c.Redirect(http.StatusFound, "/")
+}
 
-	// Main index route
-	router.Get("/", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		// Check if the user is logged in
-		if gothUser, err := gothic.CompleteUserAuth(res, req); err == nil {
-			// Render profile info if logged in
-			profileTemplate, err := template.ParseFiles("static/index.html")
-			if err != nil {
-				log.Println("Error loading profile template:", err)
-				http.Error(res, "Error loading template", http.StatusInternalServerError)
-				return
-			}
-			profileTemplate.Execute(res, gothUser)
-		} else {
-			// Serve the page as usual if not logged in
-			indexTemplate, err := template.ParseFiles("static/index.html")
-			if err != nil {
-				log.Println("Error loading index template:", err)
-				http.Error(res, "Error loading template", http.StatusInternalServerError)
-				return
-			}
-			indexTemplate.Execute(res, nil)
-		}
-	}))
+func (a *Auth) renderLoginError(c *gin.Context, errorMsg string) {
+	c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+		"Error":       errorMsg,
+		"IsLoggedIn":  false,
+		"CurrentPage": "login",
+	})
+}
+
+func (a *Auth) RegisterPage(c *gin.Context) {
+	session := sessions.Default(c)
+	user := session.Get("user")
+	if user != nil {
+		c.Redirect(http.StatusFound, "/")
+		return
+	}
+	c.HTML(http.StatusOK, "register.html", gin.H{
+		"IsLoggedIn":  false,
+		"CurrentPage": "register",
+	})
+}
+
+func (a *Auth) Register(c *gin.Context) {
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+
+	if username == "" || password == "" {
+		c.HTML(http.StatusBadRequest, "register.html", gin.H{
+			"Error":       "Username and password required",
+			"IsLoggedIn":  false,
+			"CurrentPage": "register",
+		})
+		return
+	}
+
+	if _, exists := users[username]; exists {
+		c.HTML(http.StatusConflict, "register.html", gin.H{
+			"Error":       "User already exists",
+			"IsLoggedIn":  false,
+			"CurrentPage": "register",
+		})
+		return
+	}
+
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+			"Error":       "Error creating user, please try again",
+			"IsLoggedIn":  false,
+			"CurrentPage": "register",
+		})
+		return
+	}
+
+	// Save user in memory and file
+	users[username] = hashedPassword
+	if err := a.saveUserToFile(username, hashedPassword); err != nil {
+		c.HTML(http.StatusInternalServerError, "register.html", gin.H{
+			"Error":       "Error saving user data, please try again",
+			"IsLoggedIn":  false,
+			"CurrentPage": "register",
+		})
+		return
+	}
+
+	session := sessions.Default(c)
+	session.Set("user", username)
+	session.Save()
+	c.Redirect(http.StatusFound, "/")
+}
+
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func (a *Auth) Logout(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Clear()
+	session.Save()
+	c.HTML(http.StatusOK, "logout.html", gin.H{
+		"IsLoggedIn":  false,
+		"CurrentPage": "logout",
+	})
+}
+
+func (a *Auth) ProfilePage(c *gin.Context) {
+	session := sessions.Default(c)
+	user := session.Get("user")
+	if user == nil {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+	c.HTML(http.StatusOK, "profile.html", gin.H{
+		"IsLoggedIn":  true,
+		"CurrentPage": "profile",
+		"Username":    user,
+	})
 }
